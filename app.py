@@ -6,6 +6,14 @@ import zipfile
 
 st.title("PDF Auto-Splitter & Renamer")
 
+# Membaca file template.xlsx yang ada di luar app.py
+with open("template.xlsx", "rb") as file:
+    btn = st.download_button(
+        label="Download Template Excel",
+        data=file,
+        file_name="template.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 # Upload file
 pdf_file = st.file_uploader("Upload PDF Sertifikat", type="pdf")
 excel_file = st.file_uploader("Upload Excel Daftar Nama", type="xlsx")
