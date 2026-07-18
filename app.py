@@ -7,22 +7,26 @@ import os
 
 st.title("PDF Auto-Splitter & Renamer")
 
-# --- Tambahkan kode ini di bagian atas/bawah sesuai desain Anda ---
-st.subheader("Template")
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-file_path = os.path.join(BASE_DIR, "template.xlsx")
+import streamlit as st
+import os
 
-# Pastikan file template.xlsx benar-benar ada di GitHub Anda
-if os.path.exists(file_path):
-    with open(file_path, "rb") as file:
-        st.download_button(
-            label="Download Template Excel",
-            data=file,
-            file_name="template.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-else:
-    st.error("File template.xlsx tidak ditemukan di repositori!")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+st.subheader("Template & Contoh File")
+
+# --- Tombol Download Excel ---
+excel_path = os.path.join(BASE_DIR, "template.xlsx")
+if os.path.exists(excel_path):
+    with open(excel_path, "rb") as f:
+        st.download_button("Download Template Excel", f, "template.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+# --- Tombol Download PDF Contoh ---
+pdf_path = os.path.join(BASE_DIR, "contoh_sertifikat.pdf")
+if os.path.exists(pdf_path):
+    with open(pdf_path, "rb") as f:
+        st.download_button("Download Contoh PDF", f, "contoh_sertifikat.pdf", "application/pdf")
+
+
 # Upload file
 pdf_file = st.file_uploader("Upload PDF Sertifikat", type="pdf")
 excel_file = st.file_uploader("Upload Excel Daftar Nama", type="xlsx")
