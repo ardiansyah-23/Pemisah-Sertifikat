@@ -34,6 +34,17 @@ st.divider()
 pdf_file = st.file_uploader("Upload PDF Sertifikat", type="pdf")
 excel_file = st.file_uploader("Upload Excel Daftar Nama", type="xlsx")
 
+# --- Fitur Custom Jumlah Halaman (Sekarang selalu tampil di awal) ---
+st.divider()
+st.subheader("Pengaturan Split")
+pages_per_split = st.number_input(
+    "Jumlah halaman untuk setiap nama file:", 
+    min_value=1, 
+    value=1, 
+    step=1,
+    help="Tentukan berapa halaman PDF yang akan digabungkan untuk satu nama di Excel."
+)
+
 if pdf_file and excel_file:
     df = pd.read_excel(excel_file)
     
@@ -49,16 +60,6 @@ if pdf_file and excel_file:
     
     reader = PdfReader(pdf_file)
     total_pages = len(reader.pages)
-    
-    # --- Fitur Custom Jumlah Halaman ---
-    st.subheader("Pengaturan Split")
-    pages_per_split = st.number_input(
-        "Jumlah halaman untuk setiap nama file:", 
-        min_value=1, 
-        value=1, 
-        step=1,
-        help="Tentukan berapa halaman PDF yang akan digabungkan untuk satu nama di Excel."
-    )
     
     if st.button("Proses & Download Zip"):
         zip_buffer = io.BytesIO()
