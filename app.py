@@ -12,8 +12,17 @@ excel_file = st.file_uploader("Upload Excel Daftar Nama", type="xlsx")
 
 if pdf_file and excel_file:
     df = pd.read_excel(excel_file)
-    # Pastikan nama kolom di Excel sesuai, di sini saya pakai 'Nama'
-    nama_list = df['Nama'].tolist()
+    df = pd.read_excel(excel_file)
+    
+    # Mencari kolom yang mengandung kata 'nama' (tidak peduli huruf besar/kecil)
+    kolom_nama = next((col for col in df.columns if col.lower() == 'nama'), None)
+    
+    if kolom_nama:
+        nama_list = df[kolom_nama].tolist()
+    else:
+        # Fallback: ambil kolom pertama jika tidak ketemu kolom bernama 'nama'
+        nama_list = df.iloc[:, 0].tolist()
+        st.warning("Kolom 'Nama' tidak ditemukan, menggunakan kolom pertama sebagai gantinya.")
     
     reader = PdfReader(pdf_file)
     
