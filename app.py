@@ -5,15 +5,67 @@ import io
 import zipfile
 import os
 
-st.set_page_config(page_title="PDF Splitter", page_icon="📄")
+st.set_page_config(page_title="PDF Splitter & Token System", page_icon="📄")
 
-st.title("📄 PDF Auto-Splitter & Renamer")
+# --- SIMULASI DATABASE TOKEN (Di aplikasi nyata, hubungkan ke Database/API Backend) ---
+if 'token_db' not in st.session_state:
+    st.session_state.token_db = {
+        "PROMO2026": {"max_uses": 3, "used_count": 0},
+        "VIPUSER": {"max_uses": 10, "used_count": 0}
+    }
 
+# --- STATE UNTUK STATUS LOGIN/TOKEN ---
+if 'token_verified' not in st.session_state:
+    st.session_state.token_verified = False
+    st.session_state.active_token = ""
+
+st.title("📄 PDF Auto-Splitter & Token System")
+
+# ==========================================
+# 🔐 BAGIAN 1: VERIFIKASI TOKEN WHATSAPP
+# ==========================================
+if not st.session_state.token_verified:
+    st.subheader("🔐 Masukkan Token Akses")
+    st.info("Dapatkan token akses melalui bot WhatsApp kami sebelum menggunakan aplikasi ini.")
+    
+    input_token = st.text_input("Masukkan Token Anda:", type="default")
+    
+    if st.button("Verifikasi Token"):
+        token_upper = input_token.strip().upper()
+        
+        if token_upper in st.session_state.token_db:
+            t_data = st.session_state.token_db[token_upper]
+            
+            # Cek apakah kuota habis
+            if t_data["used_count"] >= t_data["max_uses"]:
+                st.error(f"❌ Token sudah habis! Telah digunakan {t_data['used_count']}/{t_data['max_uses']} kali.")
+            else:
+                # Kurangi / catat penggunaan
+                t_data["used_count"] += 1
+                st.session_state.token_verified = True
+                st.session_state.active_token = token_upper
+                st.success("✅ Token valid! Memuat aplikasi...")
+                st.rerun()
+        else:
+            st.error("❌ Token tidak ditemukan atau salah.")
+            
+    st.stop() # Menghentikan eksekusi kode di bawah jika belum verifikasi
+
+# Jika sudah terverifikasi, tampilkan sisa kuota di sidebar
+sisa_kuota = st.session_state.token_db[st.session_state.active_token]["max_uses"] - st.session_state.token_db[st.session_state.active_token]["used_count"]
+st.sidebar.success(f"🔑 Token Aktif: **{st.session_state.active_token}**")
+st.sidebar.info(f"📊 Sisa Kuota Sesi Ini: **{sisa_kuota}x pakai**")
+
+if st.sidebar.button("Keluar / Ganti Token"):
+    st.session_state.token_verified = False
+    st.rerun()
+
+# ==========================================
+# 🚀 BAGIAN 2: APLIKASI UTAMA (PDF SPLITTER)
+# ==========================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 st.subheader("📁 Template & Contoh File")
-
-# --- Membagi tombol download jadi 2 kolom agar rapi ---
 col1, col2 = st.columns(2)
 
 with col1:
@@ -30,7 +82,6 @@ with col2:
 
 st.divider()
 
-# --- Pengaturan Opsi Tombol Split ---
 st.subheader("⚙️ Pengaturan Split")
 opsi_halaman = st.radio(
     "Pilih jumlah halaman PDF untuk setiap 1 nama di Excel:",
@@ -42,21 +93,16 @@ pages_per_split = opsi_halaman
 
 st.divider()
 
-# --- Upload file ---
 pdf_file = st.file_uploader("1. Upload PDF Sertifikat", type="pdf")
 excel_file = st.file_uploader("2. Upload Excel Daftar Nama", type="xlsx")
 
-# --- Proses Utama ---
 if pdf_file and excel_file:
     df = pd.read_excel(excel_file)
-    
-    # Mencari kolom yang mengandung kata 'nama' (tidak peduli huruf besar/kecil)
     kolom_nama = next((col for col in df.columns if col.lower() == 'nama'), None)
     
     if kolom_nama:
         nama_list = df[kolom_nama].tolist()
     else:
-        # Fallback: ambil kolom pertama jika tidak ketemu kolom bernama 'nama'
         nama_list = df.iloc[:, 0].tolist()
         st.warning("⚠️ Kolom 'Nama' tidak ditemukan, menggunakan kolom pertama sebagai gantinya.")
     
@@ -67,31 +113,22 @@ if pdf_file and excel_file:
         with st.spinner("Sedang memproses file..."):
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, "w") as zip_file:
-                
-                # Logika pemotongan berdasarkan tombol opsi
                 for i, nama in enumerate(nama_list):
                     start_page = i * pages_per_split
                     end_page = start_page + pages_per_split
                     
                     if start_page < total_pages:
                         writer = PdfWriter()
-                        
-                        # Menambahkan halaman sesuai opsi (1 halaman, 2 halaman, dst)
                         for j in range(start_page, min(end_page, total_pages)):
                             writer.add_page(reader.pages[j])
                         
-                        # Simpan per halaman ke buffer
                         pdf_buffer = io.BytesIO()
                         writer.write(pdf_buffer)
                         
-                        # Bersihkan nama karakter khusus agar tidak error saat di-zip
                         nama_file = str(nama).strip().replace("/", "_").replace("\\", "_")
-                        
-                        # Masukkan ke dalam file zip
                         zip_file.writestr(f"{nama_file}.pdf", pdf_buffer.getvalue())
             
             st.success("✅ Selesai! Silakan unduh hasilnya di bawah ini.")
-            
             st.download_button(
                 label="📥 Download Semua Hasil (ZIP)",
                 data=zip_buffer.getvalue(),
